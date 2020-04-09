@@ -13,7 +13,7 @@ from deepmatch.utils import get_item_embedding
 from ..inputs import input_from_feature_columns
 from ..layers.core import SampledSoftmaxLayer
 
-
+#todo YouTube召回网络
 def YoutubeDNN(user_feature_columns, item_feature_columns, num_sampled=5,
                user_dnn_hidden_units=(64, 16),
                dnn_activation='relu', dnn_use_bn=False,
@@ -38,10 +38,10 @@ def YoutubeDNN(user_feature_columns, item_feature_columns, num_sampled=5,
     if len(item_feature_columns) > 1:
         raise ValueError("Now YoutubeNN only support 1 item feature like item_id")
     item_feature_name = item_feature_columns[0].name
-
+    #todo 创建user的Embedding和item的Embedding
     embedding_matrix_dict = create_embedding_matrix(user_feature_columns + item_feature_columns, l2_reg_embedding,
                                                     init_std, seed, prefix="")
-
+    #todo 输入特征的构造 返回值是字典
     user_features = build_input_features(user_feature_columns)
     user_inputs_list = list(user_features.values())
     user_sparse_embedding_list, user_dense_value_list = input_from_feature_columns(user_features,

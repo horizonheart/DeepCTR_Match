@@ -21,8 +21,8 @@ if __name__ == "__main__":
     data[dense_features] = mms.fit_transform(data[dense_features])
 
     # 2.set hashing space for each sparse field,and record dense feature field name
-    #todo use hash
-    fixlen_feature_columns = [SparseFeat(feat, vocabulary_size=1000,embedding_dim=4, use_hash=False, dtype='string')  # since the input is string
+
+    fixlen_feature_columns = [SparseFeat(feat, vocabulary_size=1000,embedding_dim=4, use_hash=True, dtype='string')  # since the input is string
                               for feat in sparse_features] + [DenseFeat(feat, 1, )
                           for feat in dense_features]
 

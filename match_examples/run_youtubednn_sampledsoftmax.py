@@ -16,7 +16,7 @@ if __name__ == "__main__":
     sparse_features = ["movie_id", "user_id",
                        "gender", "age", "occupation", "zip", ]
     SEQ_LEN = 50
-    negsample = 0
+    negsample = 5
 
     # 1.Label Encoding for sparse features,and process sequence features with `gen_date_set` and `gen_model_input`
 
@@ -25,19 +25,27 @@ if __name__ == "__main__":
     for feature in features:
         lbe = LabelEncoder()
         data[feature] = lbe.fit_transform(data[feature]) + 1
-        feature_max_idx[feature] = data[feature].max() + 1
-
+        feature_max_idx[feature] = data[feature].max() + 1 #todo 这个地方+1是为了后期的缺失值占位
+    #todo 用户画像去重
     user_profile = data[["user_id", "gender", "age", "occupation", "zip"]].drop_duplicates('user_id')
 
+    #todo item画像
     item_profile = data[["movie_id"]].drop_duplicates('movie_id')
 
+    print(len(item_profile),len(data["movie_id"].unique()))
+
+    # todo 用户id作为索引
     user_profile.set_index("user_id", inplace=True)
 
+    #todo movie id转化int类型
     user_item_list = data.groupby("user_id")['movie_id'].apply(list)
 
+    #todo 生成训练测试数据 并进行负采样
     train_set, test_set = gen_data_set(data, negsample)
 
+    #todo 生成训练数据集的输入和label
     train_model_input, train_label = gen_model_input(train_set, user_profile, SEQ_LEN)
+
     test_model_input, test_label = gen_model_input(test_set, user_profile, SEQ_LEN)
 
     # 2.count #unique features for each sparse field and generate feature config for sequence feature
@@ -58,7 +66,7 @@ if __name__ == "__main__":
     # 3.Define Model and train
 
     K.set_learning_phase(True)
-
+    #todo YouTube dnn 的召回网络
     model = YoutubeDNN(user_feature_columns, item_feature_columns, num_sampled=5, user_dnn_hidden_units=(64, 16))
     # model = MIND(user_feature_columns,item_feature_columns,dynamic_k=True,p=1,k_max=2,num_sampled=5,user_dnn_hidden_units=(64,16),init_std=0.001)
 

@@ -12,7 +12,7 @@ import tensorflow as tf
 from tensorflow.python.keras.initializers import Zeros
 from tensorflow.python.keras.layers import Layer
 
-#todo dice激活函数
+
 class Dice(Layer):
     """The Data Adaptive Activation Function in DIN,which can be viewed as a generalization of PReLu and can adaptively adjust the rectified point according to distribution of input data.
 
@@ -59,7 +59,7 @@ class Dice(Layer):
         base_config = super(Dice, self).get_config()
         return dict(list(base_config.items()) + list(config.items()))
 
-#todo 激活函数
+
 def activation_layer(activation):
     if activation == "dice" or activation == "Dice":
         act_layer = Dice()

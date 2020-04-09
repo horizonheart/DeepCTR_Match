@@ -15,7 +15,7 @@ from ..layers.core import DNN, PredictionLayer
 from ..layers.sequence import AttentionSequencePoolingLayer
 from ..layers.utils import concat_func, NoMask
 
-#todo Din网络
+
 def DIN(dnn_feature_columns, history_feature_list, dnn_use_bn=False,
         dnn_hidden_units=(200, 80), dnn_activation='relu', att_hidden_size=(80, 40), att_activation="dice",
         att_weight_normalization=False, l2_reg_dnn=0, l2_reg_embedding=1e-6, dnn_dropout=0, init_std=0.0001, seed=1024,
@@ -40,17 +40,15 @@ def DIN(dnn_feature_columns, history_feature_list, dnn_use_bn=False,
 
     """
 
-    # todo 根据输入特征建立tensorflow 的input向量 features是字典的形式 键就是特征的名字
+
     features = build_input_features(dnn_feature_columns)
-    #todo 稀疏特征
+
     sparse_feature_columns = list(filter(lambda x:isinstance(x,SparseFeat),dnn_feature_columns)) if dnn_feature_columns else []
-    #todo dense特征
     dense_feature_columns = list(
         filter(lambda x: isinstance(x, DenseFeat), dnn_feature_columns)) if dnn_feature_columns else []
-    #todo 序列特征
     varlen_sparse_feature_columns = list(filter(lambda x: isinstance(x, VarLenSparseFeat), dnn_feature_columns)) if dnn_feature_columns else []
 
-    #todo 判断哪些是历史行为特征，将历史行为特征添加到history_feature_columns
+
     history_feature_columns = []
     sparse_varlen_feature_columns = []
     history_fc_names = list(map(lambda x: "hist_" + x, history_feature_list))
@@ -64,39 +62,34 @@ def DIN(dnn_feature_columns, history_feature_list, dnn_use_bn=False,
 
     inputs_list = list(features.values())
 
-    #todo 创建embedding矩阵
+
     embedding_dict = create_embedding_matrix(dnn_feature_columns, l2_reg_embedding, init_std, seed, prefix="")
 
-    #todo  1.0 查询向量 这个地方名字有点问题 history_feature_list 应该代表的是前的behavior_feature_list
+
     query_emb_list = embedding_lookup(embedding_dict, features, sparse_feature_columns, history_feature_list,
                                       history_feature_list,to_list=True)
-    #todo 2.0 历史用户的行为进行embedding向量
     keys_emb_list = embedding_lookup(embedding_dict, features, history_feature_columns, history_fc_names,
                                      history_fc_names,to_list=True)
-    #todo 3.0 稀疏的特征进行embedding
     dnn_input_emb_list = embedding_lookup(embedding_dict, features, sparse_feature_columns,
                                           mask_feat_list=history_feature_list,to_list=True)
-    #todo 4.0稠密特征
     dense_value_list = get_dense_input(features, dense_feature_columns)
-    #todo 5.0序列特征查找
+
     sequence_embed_dict = varlen_embedding_lookup(embedding_dict,features,sparse_varlen_feature_columns)
-    #todo 6.0处理序列特征 这个序列特征是 不包含用于attention的稀疏特征的
     sequence_embed_list = get_varlen_pooling_list(sequence_embed_dict, features, sparse_varlen_feature_columns,to_list=True)
 
     dnn_input_emb_list += sequence_embed_list
 
-    #todo 特征拼接
+
     keys_emb = concat_func(keys_emb_list, mask=True)
     deep_input_emb = concat_func(dnn_input_emb_list)
     query_emb = concat_func(query_emb_list, mask=True)
-    #todo
     hist = AttentionSequencePoolingLayer(att_hidden_size, att_activation,
-                                         weight_normalization=att_weight_normalization, supports_masking=True)(
-        [query_emb, keys_emb])
-    #todo  稀疏特征和 序列特征拼接起来
+                                         weight_normalization=att_weight_normalization, supports_masking=True)([
+        query_emb, keys_emb])
+
     deep_input_emb = Concatenate()([NoMask()(deep_input_emb), hist])
     deep_input_emb = Flatten()(deep_input_emb)
-    dnn_input = combined_dnn_input([deep_input_emb],dense_value_list) #todo 将dense特征 embedding特征拼接起来
+    dnn_input = combined_dnn_input([deep_input_emb],dense_value_list)
     output = DNN(dnn_hidden_units, dnn_activation, l2_reg_dnn,
                  dnn_dropout, dnn_use_bn, seed)(dnn_input)
     final_logit = Dense(1, use_bias=False)(output)

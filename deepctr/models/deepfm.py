@@ -16,7 +16,7 @@ from ..layers.core import PredictionLayer, DNN
 from ..layers.interaction import FM
 from ..layers.utils import concat_func, add_func
 
-#todo deepFM
+
 def DeepFM(linear_feature_columns, dnn_feature_columns, fm_group=[DEFAULT_GROUP_NAME], dnn_hidden_units=(128, 128),
            l2_reg_linear=0.00001, l2_reg_embedding=0.00001, l2_reg_dnn=0, init_std=0.0001, seed=1024, dnn_dropout=0,
            dnn_activation='relu', dnn_use_bn=False, task='binary'):
@@ -37,32 +37,29 @@ def DeepFM(linear_feature_columns, dnn_feature_columns, fm_group=[DEFAULT_GROUP_
     :param task: str, ``"binary"`` for  binary logloss or  ``"regression"`` for regression loss
     :return: A Keras model instance.
     """
-    #todo 根据输入特征建立tensorflow 的input向量 features是字典的形式 键就是特征的名字
-    #linear_feature_columns 这些是自定义的特征类，代表稠密特征，稀疏特征，序列特征
+
     features = build_input_features(
         linear_feature_columns + dnn_feature_columns)
 
-    inputs_list = list(features.values()) #todo Input的类型
+    inputs_list = list(features.values())
 
     group_embedding_dict, dense_value_list = input_from_feature_columns(features, dnn_feature_columns, l2_reg_embedding,
                                                                         init_std, seed, support_group=True)
-    #todo 计算线性的部分
+
     linear_logit = get_linear_logit(features, linear_feature_columns, init_std=init_std, seed=seed, prefix='linear',
                                     l2_reg=l2_reg_linear)
-    #todo 计算FM的部分
     fm_logit = add_func([FM()(concat_func(v, axis=1))
                          for k, v in group_embedding_dict.items() if k in fm_group])
-    #todo 拼接稀疏矩阵和稠密矩阵
+
     dnn_input = combined_dnn_input(list(chain.from_iterable(
         group_embedding_dict.values())), dense_value_list)
-    #todo DNN层
     dnn_output = DNN(dnn_hidden_units, dnn_activation, l2_reg_dnn, dnn_dropout,
                      dnn_use_bn, seed)(dnn_input)
     dnn_logit = tf.keras.layers.Dense(
         1, use_bias=False, activation=None)(dnn_output)
 
     final_logit = add_func([linear_logit, fm_logit, dnn_logit])
-    #todo 预测任务
+
     output = PredictionLayer(task)(final_logit)
     model = tf.keras.models.Model(inputs=inputs_list, outputs=output)
     return model
